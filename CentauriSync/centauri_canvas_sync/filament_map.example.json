@@ -1,0 +1,5 @@
+{
+  "_comment": "Copy to filament_map.json (same folder) to force a CANVAS tray to a specific OrcaSlicer filament_id. Key: '<brand>|<filament name or type>' as the printer reports it ('*' = any brand). Value: the filament_id of the preset (see the preset JSON 'filament_id', e.g. Elegoo PLA Matte = OFsB2lxm).",
+  "Polymaker|PolyLite PLA": "OFDSrzZ8",
+  "*|PLA Silk": "OFXz7Mwx"
+}
