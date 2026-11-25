@@ -51,7 +51,9 @@ def constants(path):
     return meta["tool"]["orcaslicer"]["plugin"], vals
 
 
-def build(out):
+def build(out, target="generic"):
+    if target not in {"generic", "windows-arm64"}:
+        raise ValueError(f"Unknown target: {target}")
     main, vals = constants(SOURCES[PLUGIN])
     smoke_path = ROOT / "tests" / SMOKE
     smoke, fixture = constants(smoke_path)
@@ -80,9 +82,21 @@ def build(out):
                 "orca_slicer_ui_validated": False, "plugin_id": main["id"],
                 "printer_agent_id": vals["AGENT_ID"], "installable_filename": PLUGIN,
                 "zip_payload_sha256": {name: sha(data) for name,data in sorted(files.items())}}
+    suffix = "prerelease"
+    if target == "windows-arm64":
+        guide = "WINDOWS-ARM64.md"
+        files[guide] = source_bytes(ROOT / guide)
+        manifest.update({
+            "target_platform": "windows-arm64",
+            "architecture_specific_binary": False,
+            "distribution_status": "validation-candidate",
+            "native_arm64_verified": False,
+            "zip_payload_sha256": {name: sha(data) for name, data in sorted(files.items())},
+        })
+        suffix = "windows-arm64-validation-candidate"
     files["release.json"] = (json.dumps(manifest,indent=2,sort_keys=True)+"\n").encode()
     out.mkdir(parents=True,exist_ok=True)
-    package = out / f"CentauriSync-v{version}-prerelease.zip"
+    package = out / f"CentauriSync-v{version}-{suffix}.zip"
     with zipfile.ZipFile(package,"w") as z:
         for name,data in sorted(files.items()):
             info=zipfile.ZipInfo(name,(when.year,when.month,when.day,0,0,0))
@@ -106,5 +120,8 @@ def build(out):
 
 if __name__=="__main__":
     parser=argparse.ArgumentParser(description="Build and verify the approved CentauriSync prerelease assets, without publishing.")
-    parser.add_argument("--out",type=Path,default=ROOT/"dist"/"prerelease-0.2.0")
-    print("Built + verified:", build(parser.parse_args().out))
+    parser.add_argument("--out",type=Path)
+    parser.add_argument("--target", choices=("generic", "windows-arm64"), default="generic")
+    args = parser.parse_args()
+    default_folder = "prerelease-0.2.0" if args.target == "generic" else "windows-arm64-candidate"
+    print("Built + verified:", build(args.out or ROOT / "dist" / default_folder, args.target))
